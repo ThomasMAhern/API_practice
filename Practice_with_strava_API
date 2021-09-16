@@ -1,0 +1,111 @@
+import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+import pandas as pd
+from pandas import json_normalize # I guess it just eats the json and shits out a df?
+
+
+# put this in browser to do read_all
+# https://www.strava.com/oauth/authorize?client_id=XXXXX&redirect_uri=http://localhost&response_type=code&scope=activity:read_all
+# to get the following code XXXXXX (authorization code)
+
+# authorization code will allow us to generate access token + refresh token
+# then use refresh token to get new access token
+# once you have access token, you can then make request to get activities
+
+client_id = ''
+client_secret = ''
+refresh_token = '' #for read_all, not just normal read
+authorization_code = ''
+# temp_access_token = ''
+
+auth_url = "https://www.strava.com/oauth/token"
+activites_url = "https://www.strava.com/api/v3/athlete/activities"
+
+print(f'https://www.strava.com/oauth/token?client_id={client_id}&client_secret={client_secret}&code={authorization_code}&grant_type=authorization_code') #GET all activities
+print(f'https://www.strava.com/oauth/token?client_id={client_id}&client_secret={client_secret}&refresh_token={refresh_token}&grant_type=refresh_token') #GET new refresh token
+
+payload = {
+    'client_id': client_id,
+    'client_secret': client_secret,
+    'refresh_token': refresh_token,
+    'grant_type': "refresh_token",
+    'f': 'json'}
+
+# POST request to Strava sending valid user info in order to get updated Access Token, which will then be used when we do a GET request
+print('Requesting Token...\n')
+res = requests.post(auth_url, data=payload, verify=False)
+access_token = res.json()['access_token'] #uses refresh token to get changing access token and store it as access_token
+print(f'Access Token = {access_token}')
+
+# GET request using newly gotten Access Token (because it expires) to get activities
+header = {'Authorization': 'Bearer ' + access_token} #which we got from POST request
+param = {'per_page': 200, 'page': 1}
+my_dataset = requests.get(activites_url, headers=header, params=param).json()
+
+print(type(res.json()))
+print(len(res.json()))
+res.json()
+len(my_dataset)
+
+
+
+
+
+
+
+# for strava http GET "https://www.strava.com/api/v3/segments/starred?page=&per_page=" "Authorization: Bearer [[token]]"
+# don't need to be ordered, page= and per_page=, and then headers
+
+starred_segments = requests.get("https://www.strava.com/api/v3/segments/starred", headers=header, params=param)
+[i['name'] for i in starred_segments.json()]
+
+
+
+
+
+def get_request_all_strava_activities():
+    pages_of_activities = []  #I guess pd.concat isn't super great, so adding all to a list then concat all at once afterwards
+    for i in range(1,10):
+        header = {'Authorization': 'Bearer ' + access_token} #which we got from POST request
+        param = {'per_page': 200, 'page': i}
+        my_dataset = requests.get(activites_url, headers=header, params=param).json()
+        pages_of_activities.append(json_normalize(my_dataset))
+    activities = pd.concat(pages_of_activities)
+    return activities
+
+
+df_all = get_request_all_strava_activities()
+
+
+
+
+
+
+# special pandas function returning a json object into a dataframe
+activities = json_normalize(my_dataset)
+activities
+
+
+fields = [i for i in my_dataset[0]]
+#or
+df_all.columns #See a list of all columns in the table
+# activities.shape #See the dimensions of the table.
+
+
+#Create new dataframe with only columns I care about
+cols = ['name', 'upload_id', 'type', 'distance', 'moving_time',   
+         'average_speed', 'max_speed',
+         'location_country', 'location_city', 'location_state']
+
+pd.unique(df['type'])
+
+
+
+df.groupby('type').nunique()
+
+
+walks = df.loc[df['type'] == 'Walk']
+rides = df.loc[df['type'] == 'Ride']
+erides = df.loc[df['type'] == 'EBikeRide']
+

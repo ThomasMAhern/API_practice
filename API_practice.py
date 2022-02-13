@@ -90,3 +90,17 @@ def demon_slayer():
     return [i['episodes'] for i in request if i['mal_id'] == 47778][0] #the id can be found by looking through 'response'
 
 demon_slayer()
+
+
+
+
+
+
+
+
+
+
+
+
+
+[(i['API'], i['Description'], i['Link'], ' ') for i in requests.get('https://api.publicapis.org/entries').json()['entries']]

@@ -93,8 +93,8 @@ demon_slayer()
 
 
 
-
-
+import pprint
+pprint.pprint(request)
 
 
 
